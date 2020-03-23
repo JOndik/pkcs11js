@@ -8,6 +8,7 @@
 #endif // WIN32
 
 #include "pkcs11.h"
+#include <iostream>
 
 #define CASE_PKCS11_ERROR(_value) 					\
 	case _value: {									\
@@ -446,10 +447,19 @@ Scoped<Attributes> PKCS11::C_GetAttributeValue(CK_SESSION_HANDLE hSession, CK_OB
 			pTemplate->items, pTemplate->size
 		));
 
-		// Prepare value blocks for writing
+		// Prepare valid value blocks for writing
+		uint8_t j = 0;
+		uint8_t removed = 0;
 		for (uint32_t i = 0; i < pTemplate->size; i++) {
-			pTemplate->items[i].pValue = (CK_BYTE_PTR)malloc(pTemplate->items[i].ulValueLen);
+			if ((CK_LONG)pTemplate->items[i].ulValueLen != -1) {
+				pTemplate->items[j] = pTemplate->items[i];
+				pTemplate->items[j++].pValue = (CK_BYTE_PTR)malloc(pTemplate->items[i].ulValueLen);
+			}
+			else {
+				removed++;
+			}
 		}
+		pTemplate->size -= removed;
 
 		CHECK_PKCS11_RV(functionList->C_GetAttributeValue(
 			hSession,
